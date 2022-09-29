@@ -1,3 +1,5 @@
+import {regex} from "./regex.js"
+
 console.log("hello world")
 
 /* 1- this is a comment sample 
@@ -18,5 +20,8 @@ word1 = num
 // Because this behavior does not throw an error, 
 // searching for and fixing bugs becomes more difficult.
 
+const res = regex()
+
+    console.log(res)
 
 
