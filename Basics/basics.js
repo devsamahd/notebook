@@ -25,3 +25,40 @@ const res = regex()
     console.log(res)
 
 
+// 3-Functions
+const afunc = () => {
+    //run code here
+} 
+
+//instantiate
+afunc()
+
+// object 
+const obj = {"name": "samahd", "age":20}
+
+console.log(obj.name)
+
+//object method
+const anotherobj= {
+    name: "samahd",
+    addr: "no 12",
+    met: function(){
+        return this.name this.addr
+    }
+}
+
+//events
+document.addEventListener((e) => {
+    console.log(e)
+})
+
+//string excape sequence
+// \b	Backspace
+// \f	Form Feed
+// \n	New Line
+// \r	Carriage Return
+// \t	Horizontal Tabulator
+// \v	Vertical Tabulator
+
+
+
