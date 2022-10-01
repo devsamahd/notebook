@@ -1,70 +1,107 @@
-//os module
-const os = require('os')
-//path module
+const http = require('http')
 const path = require('path')
-//custom module
-const {add, subtract, divide} = require('./math')
-//file system
-// const fs = require('fs') without promises
+const fs = require('fs')
 const fsPromises = require('fs').promises
 
+const logEvents = require('./logEvents')
+const eventEmmiter = require('events')
 
-os.version()//os version
-os.type() //os type
-os.homedir() //home directory
-__filename //filename
-__dirname //directory name
+class Emmiter extends eventEmmiter{}
 
-//path
-path.basename(__filename) //basename
-path.dirname(__filename) // directory name - same as __dirname
-path.extname(__filename) // extention name
+//initialize object
+const myEmmiter = new Emmiter()
+myEmmiter.on('log', (msg, filee)=> logEvents(msg, filee))
 
-path.parse(__dirname) //all dirname info in object
+const PORT = process.env.PORT || 3500
 
-//custom module
-add(1,2)
-subtract(2,1)
-divide(4,10)
-
-//filesystem
-//read file
-// fs.readFile(path.join(__dirname, 'files', 'text1.txt'), 'utf8', (err, data)=>{
-//     if (err) throw err
-//     console.log(data)
-// })
-
-// //write file
-// fs.writeFile(path.join(__dirname, 'files', 'reply'), "hello dear..", (err)=>{
-//     if(err) throw err
-//     console.log("file Written")
-// })
-
-// //append file
-// fs.appendFile(path.join(__dirname, "files","another1.txt"), "another one", (err)=>{
-//     if(err) throw err
-//     console.log("file appended")
-// })
-
-// //rename file
-// fs.rename(path.join(__dirname,"files","another1.txt"), path.join(__dirname,"files","djkhalid.txt"),(err)=>{
-//     if(err) throw err
-//     console.log("renamed")
-// })
-
-//file with promises
-
-const fileOps = async() =>{
+const servefiles = async(filePath, contentType, response) => {
     try{
-        const data = await fsPromises.readFile(path.join(__dirname,"files","djkhalid.txt"),'utf8')
-        console.log(data)
-        
-        await fsPromises.appendFile(path.join(__dirname,"files","reply.txt"),data)
-        await fsPromises.rename(path.join(__dirname,"files", "reply.txt"),path.join(__dirname,"files", "newone.txt"))
-        const newdata = fsPromises.readFile(path.join(__dirname, "files","newone.txt"), "utf8")
+        const rawdata = await fsPromises.readFile(filePath, 
+            !contentType.includes('image') ? 'utf8' : ''
+            )
+        const data = contentType === 'application/json'
+            ? JSON.parse(rawdata) : rawdata
+        response.writeHead(
+            filePath.includes('404.html') ? 404 : 200,
+             {'Content-Type': contentType})
+        response.end(
+            contentType === 'application/json' ? JSON.stringify(data) : data
+        )
     }catch(err){
         console.log(err)
+        myEmmiter.emit('log', `${err.name}: ${err.message}`, 'errorlog.txt')
+        response.statusCode = 500
+        response.end()
     }
 }
 
-fileOps()
+const server = http.createServer((req,res)=>{
+    console.log(req.url, req.method)
+    myEmmiter.emit('log', `${req.url}\t${req.method}`, 'reqlog.txt')
+
+    const extension = path.extname(req.url)
+    let contentType
+
+    switch (extension) {
+        case '.css':
+            contentType = "text/css"
+            break;
+        case '.js':
+            contentType = "text/javascript"
+            break;
+        case '.png':
+            contentType = "image/png"
+            break;
+        case '.jpg':
+            contentType = "image/jpeg"
+            break;
+        case '.json':
+            contentType = "application/json"
+            break;
+        case '.txt':
+            contentType = "text/plain"
+            break;
+        
+        default: 
+            contentType = "text/html"
+            break;
+    }
+    let filePath = 
+        //set content type
+        contentType=== 'text/html' && req.url === '/'
+            ?path.join(__dirname,'view', 'index.html')
+            :contentType === 'text/html' && req.url.slice(-1) === '/'
+                ?path.join(__dirname,'view',req.url, 'index.html')
+                :contentType === 'text/html'
+                    ?path.join(__dirname, 'view', req.url)
+                    :path.join(__dirname, req.url)
+
+    //makes the .html not required
+    if(!extension && req.url.slice(-1) !== '/') filePath += '.html'
+
+    const fileexists = fs.existsSync(filePath)
+
+    if(fileexists){
+        servefiles(filePath, contentType, res)
+    }else{
+        //pssibilities
+        //404 page does not exist
+        //301 redirect
+        switch(path.parse(filePath).base){
+            case 'old-page.html':
+                res.writeHead(301, {"location" : "/new-page.html"})
+                res.end()
+                break
+             case 'www-page.html':
+                res.writeHead(301, {"location" : "/"})
+                res.end()
+                break
+            default:
+                // serve a 404
+                servefiles(path.join(__dirname,"view",'404.html'), 'text/html', res)
+        }
+    }
+})
+server.listen(PORT, ()=> console.log(`server running on port${PORT}`))
+// //add a listener for log event
+

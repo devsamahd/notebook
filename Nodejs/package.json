@@ -1,5 +1,19 @@
 {
   "dependencies": {
+    "date-fns": "^2.29.3",
+    "uuid": "^9.0.0"
+  },
+  "scripts": {
+    "start": "node index",
+    "dev": "nodemon server"
+  },
+  "name": "practicetut",
+  "version": "1.0.0",
+  "description": "just practicing nodeJS",
+  "main": "index.js",
+  "author": "samahd",
+  "license": "ISC",
+  "devDependencies": {
     "nodemon": "^2.0.20"
   }
 }
